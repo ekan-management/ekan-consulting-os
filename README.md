@@ -20,7 +20,7 @@ Pluginet installeras likadant oavsett var du kör Claude Code — terminal, desk
 
 Desktop-appen och VS Code-extensionen har även grafiska plugin-hanterare (`+` → Plugins respektive `/plugins`) om du hellre klickar.
 
-`/ekan:setup` städar upp legacy-artifakter från tidigare installationer, installerar ramverks-CLAUDE.md till `~/consulting/`, mergear Ekan-rekommenderade permissions och slår på automatisk uppdatering av pluginet. Backup tas automatiskt av befintliga filer. Starta om Claude Code efter setup.
+`/ekan:setup` städar upp legacy-artifakter från tidigare installationer, installerar ramverks-CLAUDE.md till `~/consulting/`, mergear Ekan-rekommenderade permissions och slår på automatisk uppdatering av pluginet. Filer som skrivs över sparas först, se tabellen nedan. Starta om Claude Code efter setup.
 
 ### Ekans mallar
 
@@ -37,6 +37,21 @@ cd ~/consulting
 claude
 /ekan:intro
 ```
+
+### Har du redan en egen konfiguration?
+
+Pluginet skriver till några filer i `~/consulting/` och `~/.claude/settings.json`. Kontrollera listan om du redan har egna filer på de platserna.
+
+| Vad | När | Vad som händer |
+|---|---|---|
+| `~/consulting/CLAUDE.md` | Setup och varje sessionsstart | Ersätts med Ekans version. Din tidigare fil sparas som `CLAUDE.md.bak`. Lägg egna instruktioner i `MY-CLAUDE.md`, som aldrig skrivs över |
+| `~/consulting/ramverk/` | Setup och varje sessionsstart | Pluginets egen mapp. Ändrade filer sparas som `.bak`, men egna filer i mappen tas bort |
+| `~/consulting/scripts/` | Setup och varje sessionsstart | `read_office.py`, `md_to_word.py` och `check_diakriter.py` ersätts, med `.bak` av en ändrad fil. Dina övriga skript rörs inte |
+| `~/consulting/ROADMAP.md` | Varje sessionsstart | Ersätts, med `.bak` |
+| `~/.claude/settings.json` | Setup | Säkerhetskopieras till `~/.claude/backups/` först. Ekans behörigheter läggs till dina, och `defaultMode` och `language` sätts bara om de saknas. Ekans gamla hooks tas bort, dina egna ligger kvar |
+| Skills och kommandon i `~/.claude/` med Ekans gamla namn | Setup | Listas, och raderas först när du bekräftar |
+
+Sessionsstarten synkar bara om `~/consulting` finns. Den körs alltså redan i första sessionen efter installationen, även innan du kört setup.
 
 ## Uppdateringar
 

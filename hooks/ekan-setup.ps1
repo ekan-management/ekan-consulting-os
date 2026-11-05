@@ -23,6 +23,24 @@ function Write-Info { param([string]$Msg) Write-Host "  $Msg" -ForegroundColor G
 function Write-Ok   { param([string]$Msg) Write-Host "  $Msg" -ForegroundColor Green }
 function Write-Warn { param([string]$Msg) Write-Host "  $Msg" -ForegroundColor Yellow }
 
+# Filer i ~/consulting som setup skrev över och sparade som .bak. Redovisas sist.
+$script:Bakade = @()
+
+function Copy-MedBackup {
+    # Skriver en pluginfil till ~/consulting. Finns en fil med annat innehåll
+    # sparas den först som .bak, på samma sätt som sessionsstarten gör. En fil
+    # med samma innehåll rörs inte, så en omkörning skriver ingen ny .bak.
+    param([string]$Source, [string]$Dest)
+    if (Test-Path $Dest) {
+        $srcHash = (Get-FileHash $Source -Algorithm SHA256).Hash
+        $dstHash = (Get-FileHash $Dest -Algorithm SHA256).Hash
+        if ($srcHash -eq $dstHash) { return }
+        Copy-Item $Dest "$Dest.bak" -Force
+        $script:Bakade += $Dest
+    }
+    Copy-Item $Source $Dest -Force
+}
+
 function Backup-UserFiles {
     # Backupar settings.json till ~/.claude/backups/ (settings.json ändras varje
     # körning av permissions-merge — backup ger rollback-säkerhet).
@@ -162,7 +180,7 @@ function Install-RamverkClaudeMd {
         Write-Warn "Saknar $src — hoppar över CLAUDE.md-install"
         return
     }
-    Copy-Item $src $dst -Force
+    Copy-MedBackup -Source $src -Dest $dst
     Write-Ok "Installerat: ~/consulting/CLAUDE.md (Ekan-ramverk)"
 
     # CLAUDE.md pekar ut referensfilerna i ramverk/ (3.4, 3.5). Utan dem här
@@ -172,7 +190,7 @@ function Install-RamverkClaudeMd {
         $ramverkDst = Join-Path $ConsultingDir "ramverk"
         if (-not (Test-Path $ramverkDst)) { New-Item -ItemType Directory -Path $ramverkDst -Force | Out-Null }
         foreach ($fil in Get-ChildItem $ramverkSrc -File -Filter *.md) {
-            Copy-Item $fil.FullName (Join-Path $ramverkDst $fil.Name) -Force
+            Copy-MedBackup -Source $fil.FullName -Dest (Join-Path $ramverkDst $fil.Name)
         }
         Write-Ok "Installerat: ~/consulting/ramverk (referensfiler)"
     }
@@ -234,7 +252,7 @@ function Install-Scripts {
 
     $antal = 0
     foreach ($fil in Get-ChildItem $src -File -Filter *.py) {
-        Copy-Item $fil.FullName (Join-Path $dst $fil.Name) -Force
+        Copy-MedBackup -Source $fil.FullName -Dest (Join-Path $dst $fil.Name)
         $antal++
     }
     Write-Ok "Hjälpskript installerade: ~/consulting/scripts ($antal filer)"
@@ -277,6 +295,57 @@ function Enable-MarketplaceAutoUpdate {
     $Settings.env | Add-Member -NotePropertyName FORCE_AUTOUPDATE_PLUGINS -NotePropertyValue "1" -Force
 }
 
+function Test-EkanLegacyHook {
+    # Känner igen Ekans hooks från tiden före pluginet: skripten i ~/.claude/hooks/
+    # och påminnelsen efter komprimering. Allt annat räknas som konsultens eget.
+    param([string]$Command)
+    if ([string]::IsNullOrEmpty($Command)) { return $false }
+    if ($Command -match '[\\/]\.claude[\\/]hooks[\\/](block-dangerous|compact-reminder|ekan-setup|jobb|nytt-projekt|session-start)\.ps1') { return $true }
+    if ($Command -match 'Påminnelse efter komprimering') { return $true }
+    return $false
+}
+
+function Remove-EkanLegacyHooks {
+    # Före 3.12.1 togs hela hooks-blocket bort, även hooks som konsulten själv
+    # lagt dit. Nu tas bara Ekans gamla poster bort. En grupp eller händelse som
+    # blir tom tas bort, och hooks-blocket försvinner först när inget är kvar.
+    # Returnerar antalet borttagna hooks.
+    param([PSCustomObject]$Settings)
+    if (-not ($Settings.PSObject.Properties.Name -contains 'hooks')) { return 0 }
+    $hooks = $Settings.hooks
+    if ($null -eq $hooks -or $hooks -isnot [System.Management.Automation.PSCustomObject]) { return 0 }
+
+    $borttagna = 0
+    foreach ($handelse in @($hooks.PSObject.Properties)) {
+        $grupper = @()
+        foreach ($grupp in @($handelse.Value)) {
+            if ($null -eq $grupp) { continue }
+            if (-not ($grupp.PSObject.Properties.Name -contains 'hooks')) {
+                $grupper += $grupp
+                continue
+            }
+            $kvar = @()
+            foreach ($h in @($grupp.hooks)) {
+                if ($null -eq $h) { continue }
+                if (Test-EkanLegacyHook -Command $h.command) { $borttagna++ } else { $kvar += $h }
+            }
+            if ($kvar.Count -gt 0) {
+                $grupp.hooks = $kvar
+                $grupper += $grupp
+            }
+        }
+        if ($grupper.Count -gt 0) {
+            $hooks.($handelse.Name) = $grupper
+        } else {
+            $hooks.PSObject.Properties.Remove($handelse.Name)
+        }
+    }
+    if (@($hooks.PSObject.Properties).Count -eq 0) {
+        $Settings.PSObject.Properties.Remove('hooks')
+    }
+    return $borttagna
+}
+
 function Merge-Permissions {
     $settingsPath = Join-Path $ClaudeDir "settings.json"
     $templatePath = Join-Path $PluginRoot "config/permissions-template.json"
@@ -316,9 +385,11 @@ function Merge-Permissions {
         $existing | Add-Member -NotePropertyName language -NotePropertyValue "swedish" -Force
     }
 
-    # TA BORT hooks-block — i plugin-läge hanteras hooks av hooks/hooks.json
-    if ($existing.PSObject.Properties.Name -contains 'hooks') {
-        $existing.PSObject.Properties.Remove('hooks')
+    # Ekans gamla hooks tas bort, eftersom pluginet levererar dem via
+    # hooks/hooks.json. Konsultens egna hooks ligger kvar.
+    $borttagna = Remove-EkanLegacyHooks -Settings $existing
+    if ($borttagna -gt 0) {
+        Write-Info "Tog bort $borttagna gamla Ekan-hooks ur settings.json. Egna hooks ligger kvar."
     }
 
     Enable-MarketplaceAutoUpdate -Settings $existing
@@ -450,6 +521,11 @@ function Invoke-EkanSetup {
         Write-Host "Backup sparad till:" -ForegroundColor White
         Write-Host "  ~/.claude/backups/settings.json.bak-$ts" -ForegroundColor Gray
         Write-Host "Vid problem: kopiera tillbaka från backup-filen och kör /ekan:setup igen." -ForegroundColor White
+    }
+    if ($script:Bakade.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Dessa filer skrevs över. Din tidigare version ligger bredvid som .bak:" -ForegroundColor White
+        foreach ($f in $script:Bakade) { Write-Host "  $f.bak" -ForegroundColor Gray }
     }
 }
 

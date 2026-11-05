@@ -245,6 +245,33 @@ Describe "ekan-setup - consulting-setup" {
         $content | Should -Match "EKAN STANDARD"
     }
 
+    It "sparar en egen CLAUDE.md som .bak innan den skrivs över" {
+        "min egen CLAUDE.md" | Set-Content "$script:testRoot/consulting/CLAUDE.md"
+        Invoke-Setup -UserHome $script:testRoot
+        (Get-Content "$script:testRoot/consulting/CLAUDE.md.bak" -Raw).Trim() | Should -Be "min egen CLAUDE.md"
+    }
+
+    It "skriver ingen .bak när CLAUDE.md redan är Ekans version" {
+        Invoke-Setup -UserHome $script:testRoot
+        Invoke-Setup -UserHome $script:testRoot
+        Test-Path "$script:testRoot/consulting/CLAUDE.md.bak" | Should -Be $false
+    }
+
+    It "sparar ett eget hjälpskript med samma namn som .bak" {
+        New-Item -ItemType Directory -Path "$script:testRoot/consulting/scripts" -Force | Out-Null
+        "# mitt eget skript" | Set-Content "$script:testRoot/consulting/scripts/read_office.py"
+        Invoke-Setup -UserHome $script:testRoot
+        (Get-Content "$script:testRoot/consulting/scripts/read_office.py.bak" -Raw).Trim() | Should -Be "# mitt eget skript"
+    }
+
+    It "rör inte konsultens övriga skript" {
+        New-Item -ItemType Directory -Path "$script:testRoot/consulting/scripts" -Force | Out-Null
+        "# annat skript" | Set-Content "$script:testRoot/consulting/scripts/mitt_verktyg.py"
+        Invoke-Setup -UserHome $script:testRoot
+        (Get-Content "$script:testRoot/consulting/scripts/mitt_verktyg.py" -Raw).Trim() | Should -Be "# annat skript"
+        Test-Path "$script:testRoot/consulting/scripts/mitt_verktyg.py.bak" | Should -Be $false
+    }
+
     It "bevarar MY-CLAUDE.md om den finns" {
         "min personliga anpassning" | Set-Content "$script:testRoot/consulting/MY-CLAUDE.md"
         Invoke-Setup -UserHome $script:testRoot
@@ -287,6 +314,77 @@ Describe "ekan-setup - permissions-merge" {
         $settings = Get-Content "$script:testRoot/.claude/settings.json" -Raw | ConvertFrom-Json
         # Hooks-blocket hanteras nu av hooks/hooks.json i plugin — tas bort från settings.json
         $settings.hooks | Should -BeNullOrEmpty
+    }
+}
+
+Describe "ekan-setup - egna hooks bevaras" {
+    BeforeEach {
+        $script:testRoot = New-TestEnv
+        $settingsPath = "$script:testRoot/.claude/settings.json"
+        # Blandning av Ekans gamla hooks och konsultens egna, i samma grupp och i
+        # egna grupper. Skrivs som rå JSON så att strukturen är exakt den som
+        # Claude Code läser.
+        $home2 = $script:testRoot -replace '\\', '/'
+        @"
+{
+  "permissions": { "allow": ["Read"], "deny": [] },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "powershell -NoProfile -File $home2/.claude/hooks/session-start.ps1", "timeout": 15 },
+          { "type": "command", "command": "echo min egen start" }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          { "type": "command", "command": "echo 'Påminnelse efter komprimering: Visa ALLTID projektöversikt'" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [ { "type": "command", "command": "python C:/verktyg/min-vakt.py" } ]
+      }
+    ]
+  }
+}
+"@ | Set-Content $settingsPath -Encoding UTF8
+    }
+    AfterEach { Remove-TestEnv $script:testRoot }
+
+    It "behåller konsultens egen hook i samma grupp som Ekans gamla" {
+        Invoke-Setup -UserHome $script:testRoot
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw | ConvertFrom-Json
+        @($s.hooks.SessionStart).Count | Should -Be 1
+        @($s.hooks.SessionStart[0].hooks).Count | Should -Be 1
+        $s.hooks.SessionStart[0].hooks[0].command | Should -Be "echo min egen start"
+    }
+
+    It "tar bort en grupp som bara innehöll Ekans gamla hook" {
+        Invoke-Setup -UserHome $script:testRoot
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw | ConvertFrom-Json
+        @($s.hooks.SessionStart | Where-Object { $_.matcher -eq "compact" }).Count | Should -Be 0
+    }
+
+    It "behåller konsultens egna händelser orörda" {
+        Invoke-Setup -UserHome $script:testRoot
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw | ConvertFrom-Json
+        $s.hooks.PreToolUse[0].matcher | Should -Be "Bash"
+        $s.hooks.PreToolUse[0].hooks[0].command | Should -Be "python C:/verktyg/min-vakt.py"
+    }
+
+    It "skriver kvarvarande grupper och hooks som JSON-arrayer" {
+        # PowerShell 5.1 kan göra en array med ett element till ett ensamt objekt.
+        # Claude Code kräver arrayer.
+        Invoke-Setup -UserHome $script:testRoot
+        $raw = Get-Content "$script:testRoot/.claude/settings.json" -Raw
+        $raw | Should -Match '"SessionStart":\s*\['
+        $raw | Should -Match '"PreToolUse":\s*\['
+        $raw | Should -Match '"hooks":\s*\[\s*\{\s*"type"'
     }
 }
 

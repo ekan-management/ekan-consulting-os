@@ -6,6 +6,28 @@ listan i varje ny session under ett dygn efter en uppdatering, så skriv utan
 filnamn och tekniska termer. `tests/version.Tests.ps1` stoppar en release som
 saknar avsnittet.
 
+## 3.12.1 — 2026-11-05
+
+### För konsulten
+
+- Har du egna automatiska kommandon (hooks) i Claudes inställningar ligger de nu kvar när du kör setup. Tidigare togs de bort.
+- Setup sparar din tidigare version av filer som den skriver över i consulting-mappen, och säger vilka det gäller.
+- README beskriver vilka filer pluginet ändrar, för dig som redan har en egen konfiguration.
+
+### Ändrat
+
+- **Setup tar bara bort Ekans gamla hooks ur `settings.json`.** Tidigare
+  försvann hela `hooks`-blocket, även konsultens egna hooks. Nu känner
+  `Test-EkanLegacyHook` igen pluginets gamla skript i `~/.claude/hooks/` och
+  påminnelsen efter komprimering. En grupp eller händelse som blir tom tas
+  bort, och blocket försvinner först när inget är kvar.
+- **Setup sparar `.bak` innan den skriver över** `~/consulting/CLAUDE.md`,
+  filerna i `ramverk/` och hjälpskripten, på samma sätt som sessionsstarten.
+  En fil med samma innehåll rörs inte, så en omkörning skriver ingen ny `.bak`.
+  Setup listar sist de filer som fick en `.bak`.
+- **README: "Har du redan en egen konfiguration?"** med vad setup och
+  sessionsstarten skriver till.
+
 ## 3.12.0 — 2026-11-05
 
 ### För konsulten
