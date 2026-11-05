@@ -1,0 +1,40 @@
+# Projektfiler — ska ALDRIG in i detta repo
+projects/
+archive/
+
+# Kunddata
+*.pdf
+*.xlsx
+*.csv
+*.png
+*.jpg
+
+# PowerShell-cache som kan hamna i arbetsmappen vid testkörning
+Microsoft/
+
+# Repot är publikt. Ekans Office-mallar och planeringsdokument hör inte hemma här.
+templates/
+docs/
+*.docx
+*.pptx
+*.potx
+*.xlsm
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Claude Code lokal konfig
+.claude/
+
+# Repo-rotens CLAUDE.md = personlig planeringskontext per konsult
+/CLAUDE.md

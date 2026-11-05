@@ -1,0 +1,13 @@
+{
+  "name": "ekan",
+  "version": "3.12.0",
+  "description": "Ekans AI-konsult-OS — skills, hooks och ramverk för managementkonsulter",
+  "author": {
+    "name": "Ekan Management",
+    "url": "https://github.com/ekan-management"
+  },
+  "homepage": "https://github.com/ekan-management/ekan-consulting-os",
+  "repository": "https://github.com/ekan-management/ekan-consulting-os",
+  "license": "proprietary",
+  "keywords": ["ekan", "consulting", "swedish", "rfp"]
+}

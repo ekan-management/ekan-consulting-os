@@ -1,0 +1,96 @@
+# Personliga inställningar
+
+<!--
+  Den här filen är din — Ekan-standarden (CLAUDE.md) rör den aldrig.
+  Anpassa fritt. Ta bort kommentarer och exempel du inte behöver.
+  Kör /ekan:intro för att fylla i profilen interaktivt.
+-->
+
+## Vad hör hemma här (vs i CLAUDE.md)
+
+`MY-CLAUDE.md` är för det som är **personligt för dig**:
+
+- Din rollnivå (junior/medior/senior/ledning) och din ton
+- Egna arbetsflöden och mönster du ofta använder
+- Personliga verktyg utöver Ekan-standard (transkriberingstjänst, anteckningsapp, m.m.)
+- Kundspecifika regler för dina kunder
+
+`CLAUDE.md` (Ekan-standard) hanterar redan:
+
+- Språk, skrivregler och svenska tecken
+- Källförankring, arbete med projektdokument och tvålagerarbetssättet
+- Färgkoder och visuell profil
+- Datahantering enligt Ekans AI-policy
+- Subagenter och modellval
+- Filhantering (markitdown, md_to_word.py)
+- Word-mallar
+- Skills
+- Standardbeteenden (UA-granskning, projektavslut)
+- Miljökonventioner (Windows + PowerShell)
+
+Modell, effort och advisor är inställningar, inte instruktioner. Byt dem med `/model`, `/effort` och `/advisor`.
+
+Rör inte dessa här. De uppdateras via plugin-uppdatering.
+
+## Min profil
+
+<!--
+  Välj den rollprofil som passar dig och avkommentera den.
+  Profilen styr hur Claude bemöter dig — inte vad den kan göra.
+  Senior = erfaren konsult, inte erfaren AI-användare.
+-->
+
+<!--
+### Junior — Coachande
+Claude förklarar varför, inte bara vad. Pedagogisk, lär ut tänket bakom varje steg.
+-->
+
+<!--
+### Medior — Sparringpartner
+Presenterar alltid 2–3 alternativ med avvägningar. Utmanar valet, inte resonemanget.
+-->
+
+<!--
+### Senior — Kritisk granskare
+Ifrågasätter premisser, hittar hål i argumentationen, presenterar motargument.
+-->
+
+<!--
+### Ledning/kompetensledning — Strategisk
+Fokus på implikationer och beslutsstöd, lyfter systemeffekter och organisatoriska konsekvenser.
+-->
+
+## Ton och kommunikation
+
+<!-- Exempel:
+- Håll svar korta och konkreta
+- Använd tabeller framför löptext
+- Skriv aldrig "Absolut!" eller "Självklart!" — gå direkt på sak
+-->
+
+## Egna arbetsflöden
+
+<!-- Exempel:
+- Vid mötesförberedelser: sammanfatta bakgrundsmaterial i tre punkter
+- Vid rapportskrivning: gör alltid en disposition först
+- Vid analys: presentera slutsatsen innan detaljerna
+-->
+
+## Personliga verktyg utöver Ekan-standard
+
+<!-- Exempel:
+- Transkribering: Klang AI / Otter.ai / annat
+- Anteckningar: Obsidian / Notion / annat
+- Skissning: Excalidraw / draw.io / annat
+-->
+
+## Kundspecifika resurser
+
+<!-- Resurser som återanvänds mellan projekt per kund. Exempel:
+- [Kundnamn]: kundens processmodell i skills/personal-[skillnamn]/references/
+- [Kundnamn]: kontaktlista i kundspecifikt/[kundnamn]/
+-->
+
+## Övrigt
+
+<!-- Allt annat som är personligt för dig. -->
