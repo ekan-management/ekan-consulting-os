@@ -6,6 +6,26 @@ listan i varje ny session under ett dygn efter en uppdatering, så skriv utan
 filnamn och tekniska termer. `tests/version.Tests.ps1` stoppar en release som
 saknar avsnittet.
 
+## 3.13.0 — 2026-11-12
+
+### För konsulten
+
+- Webbsidor som Claude bygger i ett uppdrag hämtar inte längre typsnitt, skript eller bilder från internet. Tidigare kunde en sida ladda typsnitt från Google, och då fick Google mottagarens IP-adress varje gång sidan öppnades. En tysk domstol har bedömt det som ett brott mot GDPR.
+- Sidorna använder i stället Ekans egna typsnitt, Calisto MT och Segoe UI, som redan finns på datorn.
+- Regeln gäller även sidor som Claude publicerar på claude.ai.
+
+### Ändrat
+
+- **Ny regel i avsnitt 3.4 i Ekans CLAUDE.md:** HTML-filer i uppdrag hämtar
+  ingenting från internet, inga typsnitt från Google Fonts, inga skript från
+  CDN och inga externa bilder. Regeln går före Artifact-verktygets standard
+  att ladda typsnitt från Google Fonts. Claude bäddar in bibliotek i filen
+  och söker efter `https://` i `src`, `<link href>`, `url(` och `@import`
+  före leverans.
+- **`ramverk/visuell-profil.md`** anger typsnittsstackarna för HTML:
+  `"Calisto MT", Georgia, serif` för rubriker och
+  `"Segoe UI Semilight", "Segoe UI", sans-serif` för brödtext.
+
 ## 3.12.1 — 2026-11-05
 
 ### För konsulten

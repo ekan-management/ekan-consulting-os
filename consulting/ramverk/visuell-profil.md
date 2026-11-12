@@ -2,7 +2,7 @@
 
 Del av Ekan-standarden, synkas från pluginet. Redigera inte. `CLAUDE.md` avsnitt 3.4 pekar hit.
 
-Profilen kommer ur PowerPoint-mallen `templates/Ekan mall - 2026-06-09.potx`. Använd dessa färger i tabeller och visuella element i Word, Excel och PowerPoint:
+Profilen kommer ur PowerPoint-mallen `templates/Ekan mall - 2026-06-09.potx`. Använd dessa färger i tabeller och visuella element i Word, Excel, PowerPoint och HTML:
 
 | Namn | Hex | Användning |
 |------|-----|-----------|
@@ -14,6 +14,8 @@ Profilen kommer ur PowerPoint-mallen `templates/Ekan mall - 2026-06-09.potx`. An
 | Text | `#353535` | Brödtext, neutrala element |
 
 Rubriker sätts i Calisto MT, brödtext i Segoe UI Semilight. Båda följer med Office.
+
+I HTML anger du typsnitten som systemtypsnitt med reserver: `"Calisto MT", Georgia, serif` för rubriker och `"Segoe UI Semilight", "Segoe UI", sans-serif` för brödtext. Länka aldrig till Google Fonts eller någon annan extern typsnittskälla, se avsnitt 3.4 i `CLAUDE.md`. Lägg färgerna ovan som CSS-variabler i filen.
 
 Amber klarar 6,2:1 mot djupgrönt men bara 1,8:1 mot gräddvitt, så använd den som fyllning och aldrig som textfärg på ljus botten.
 
