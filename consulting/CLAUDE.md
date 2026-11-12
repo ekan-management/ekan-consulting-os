@@ -121,7 +121,14 @@ Konsultarbete bygger på exakthet i återgivning av kundens material.
 ### 3.4 Visuell profil
 <!-- typ 3. Innehållet flyttat till ramverk/visuell-profil.md 2026-10-09 -->
 
-Ekans färger, typsnitt och statusfärger för Word, Excel och PowerPoint står i `~/consulting/ramverk/visuell-profil.md`. Läs filen innan du formaterar en Office-fil, en tabell eller ett diagram.
+Ekans färger, typsnitt och statusfärger för Word, Excel, PowerPoint och HTML står i `~/consulting/ramverk/visuell-profil.md`. Läs filen innan du formaterar en Office-fil, en HTML-sida, en tabell eller ett diagram.
+
+**HTML-filer i uppdrag hämtar ingenting från internet:** inga typsnitt från Google Fonts, inga skript från CDN, inga externa bilder. En extern resurs skickar mottagarens IP-adress till tredje part varje gång filen öppnas, och Landgericht München bedömde 2022 att Google Fonts på det sättet bryter mot GDPR. Regeln gäller även sidor som publiceras som Artifact och går före Artifact-verktygets standard att ladda typsnitt från Google Fonts.
+<!-- typ 1 + 3: motverkar verktygets standard (artifact-design laddar Google Fonts) och följer av GDPR. Tillagd 2026-11-12 efter att tre HTML-leveranser i ett uppdrag laddade typsnitt från fonts.googleapis.com -->
+
+- Ange Ekans typsnitt som systemtypsnitt: `"Calisto MT", Georgia, serif` för rubriker och `"Segoe UI Semilight", "Segoe UI", sans-serif` för brödtext
+- Behövs ett bibliotek, till exempel Chart.js, bädda in det i filen
+- Sök i filen efter `https://` i `src`, `<link href>`, `url(` och `@import` före leverans. Inga träffar är godkänt. En vanlig länk (`<a href>`) hämtar inget förrän mottagaren klickar
 
 ### 3.5 Projekt-CLAUDE.md — vad som hör i filen
 <!-- typ 1: följer av hur CLAUDE.md läses in, inte av modellen. Detaljerna flyttade till ramverk/projekt-claude-md.md 2026-10-09 -->
