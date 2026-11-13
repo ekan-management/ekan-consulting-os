@@ -115,6 +115,11 @@ $notisTimmar = 24
 
 $aktuellaSkills = @(Get-SkillNamn $pluginRoot)
 
+# Tillståndsfilerna ligger i ~/.claude. Saknas mappen skrev Set-Content tre fel
+# på stderr vid varje sessionsstart.
+$claudeDir = Join-Path $env:USERPROFILE ".claude"
+if (-not (Test-Path $claudeDir)) { New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null }
+
 $currentVersion = $null
 if (Test-Path $versionFile) {
     $currentVersion = (Get-Content $versionFile -ErrorAction SilentlyContinue | Select-Object -First 1).Trim()

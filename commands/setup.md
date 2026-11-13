@@ -22,4 +22,6 @@ Gör då så här:
 
 Sätt aldrig `-Yes` i den första körningen, och aldrig utan att användaren sagt ja — flaggan hoppar över den enda spärren före radering.
 
-Efter skriptets slut: påminn användaren att köra `cd ~/consulting && claude` och sedan `/ekan:intro` för att komma igång.
+Efter skriptets slut: be användaren starta en ny session med mappen `consulting` och skriva `/ekan:intro`.
+
+Vill användaren peka ut en annan mallmapp än `~/consulting/templates`: kör om med `-Mallmapp "<mapp>"`. Vill användaren bara veta om miljön är komplett: kör med `-Kontroll`, som inte ändrar något.

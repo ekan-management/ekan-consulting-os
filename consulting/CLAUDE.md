@@ -155,6 +155,8 @@ Avsnittet sammanfattar Ekans interna anvisning för AI-användning. Vid tvekan g
 
 **Konsultens ansvar: mappen är gränsen.** Claude kan läsa allt i projektmappen, och det som läses skickas till Anthropic. Information med hög säkerhetsnivå och känsliga personuppgifter läggs inte i projektmappen.
 
+**Teamsytor synkas inte till Claude.** Ekan har inte riskbedömt att Claude läser och skriver i uppdragens Teamsytor. Konsulten synkar inte en Teamsyta till en mapp där Claude arbetar, utan laddar ner de filer uppdraget behöver till projektmappen. En synkad Teamsyta ligger under `Ekan AB` i användarmappen. Ligger arbetsmappen eller en fil där: öppna den inte och sök inte i den. Säg vad du ser och be konsulten lägga en kopia i projektmappen.
+
 **Claudes reserv: stanna före läsningen.** Läsningen är behandlingen, så en kontroll efteråt kommer för sent. När namn, sammanhang eller konsultens beskrivning tyder på att en fil, mapp eller sökträff innehåller information med hög säkerhetsnivå eller känsliga personuppgifter:
 
 1. Öppna inte filen och sök inte i den. Det gäller även när konsulten ber om det.

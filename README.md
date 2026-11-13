@@ -4,13 +4,17 @@ Ekans AI-konsult-OS för Claude Code. Skills, hooks och ramverk skräddarsydda f
 
 ## Förutsättningar
 
-- **Claude Code** — terminal, desktop-app eller IDE-extension
-- **PowerShell** — hookarna körs i den inbyggda Windows PowerShell 5.1, men **PowerShell 7 (`pwsh`) rekommenderas**: bättre UTF-8-hantering och snabbare uppstart. [Installera här](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
-- **Python 3** — används av mallskripten i `scripts/` (Word/Office). `/ekan:setup` installerar paketen automatiskt
+- **Claude Code desktop-appen**, installerad och inloggad. Terminalen och IDE-tilläggen fungerar också
+- **Git for Windows**. Claude Code hämtar pluginet med `git`
+- **Python 3** behövs först när Claude ska skapa eller läsa Word- och Office-filer. `/ekan:setup` installerar paketen om Python finns
 
-## Installation
+Hookarna körs i den inbyggda Windows PowerShell 5.1. PowerShell 7 behövs inte.
 
-Pluginet installeras likadant oavsett var du kör Claude Code — terminal, desktop-app eller IDE-extension:
+## Kom igång
+
+Ny på Ekan? Öppna Claude Code-appen, starta en session i din användarmapp och klistra in texten i [`onboarding/klistra-in.md`](onboarding/klistra-in.md). Den installerar pluginet, skapar `~/consulting` och kontrollerar att allt fungerar. Texten kan klistras in flera gånger och fortsätter där den slutade.
+
+### Manuell installation
 
 ```
 /plugin marketplace add ekan-management/ekan-plugins
@@ -18,25 +22,24 @@ Pluginet installeras likadant oavsett var du kör Claude Code — terminal, desk
 /ekan:setup
 ```
 
-Desktop-appen och VS Code-extensionen har även grafiska plugin-hanterare (`+` → Plugins respektive `/plugins`) om du hellre klickar.
-
-`/ekan:setup` städar upp legacy-artifakter från tidigare installationer, installerar ramverks-CLAUDE.md till `~/consulting/`, mergear Ekan-rekommenderade permissions och slår på automatisk uppdatering av pluginet. Filer som skrivs över sparas först, se tabellen nedan. Starta om Claude Code efter setup.
+`/ekan:setup` städar upp legacy-artifakter från tidigare installationer, installerar ramverks-CLAUDE.md till `~/consulting/`, mergear Ekan-rekommenderade permissions och slår på automatisk uppdatering av pluginet. Filer som skrivs över sparas först, se tabellen nedan. Starta en ny session i `~/consulting` efter setup och skriv `/ekan:intro`.
 
 ### Ekans mallar
 
-Ekans Office-mallar ingår inte i pluginet. Hämta dem från Ekans SharePoint och lägg dem i `~/consulting/templates/`. Tre mallar behövs för att skillsen ska fungera:
+Ekans Office-mallar ingår inte i pluginet. De ligger i Teamsytan för varje uppdrag. Tre mallar behövs för att skillsen ska fungera:
 
 - `Mall Projektdirektiv.docx` och `Mall Uppdragsdirektiv Små uppdrag.docx`, som `/ekan:projektdirektiv` använder
 - `Mall anteckningar.docx`, som `scripts/md_to_word.py` använder som standardmall
 
-Övriga mallar du lägger i mappen kopierar `/ekan:nytt-projekt` in i varje nytt projekt. `/ekan:setup` listar de mallar som saknas.
+Onboardingen rör inte mallarna. Ladda ner dem från uppdragets Teamsyta och lägg dem i `~/consulting/templates/` när du behöver dem första gången. Skillsen säger till om en mall saknas. Synka inte Teamsytan till en mapp som Claude arbetar i.
 
-Efter setup:
+Vill du läsa mallarna från en annan mapp sätts den på ett ställe, `EKAN_MALLAR` i `env` i `~/.claude/settings.json`:
+
 ```
-cd ~/consulting
-claude
-/ekan:intro
+powershell -NoProfile -ExecutionPolicy Bypass -File "<pluginets rot>/hooks/ekan-setup.ps1" -Mallmapp "<mapp>"
 ```
+
+Pluginet läser mallarna och skriver aldrig till mallmappen. `/ekan:nytt-projekt` kopierar Office-filerna i mappen till varje nytt projekt. `ekan-setup.ps1 -Kontroll` visar om mallarna finns och går att öppna.
 
 ### Har du redan en egen konfiguration?
 
@@ -121,6 +124,7 @@ ekan-consulting-os/
 ├── hooks/                           PowerShell-hooks + hooks.json
 ├── skills/                          Intro, nytt-projekt, projektdirektiv
 ├── consulting/                      Ramverks-CLAUDE.md, ramverk/ + MY-CLAUDE.md template
+├── onboarding/klistra-in.md         Onboarding-prompten för nya konsulter
 ├── config/permissions-template.json Permissions som /ekan:setup mergear in
 ├── scripts/                         Python-hjälpskript (Word/Office)
 └── tests/                           Pester-tester

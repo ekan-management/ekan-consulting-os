@@ -11,7 +11,8 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 
 # Medel/stort: 'Mall Projektdirektiv.docx'. Litet: 'Mall Uppdragsdirektiv Små uppdrag.docx'
-TEMPLATE = os.path.join(os.path.expanduser('~'), 'consulting', 'templates', 'Mall Projektdirektiv.docx')
+MALLMAPP = os.environ.get('EKAN_MALLAR') or os.path.join(os.path.expanduser('~'), 'consulting', 'templates')
+TEMPLATE = os.path.join(MALLMAPP, 'Mall Projektdirektiv.docx')
 doc = Document(TEMPLATE)
 
 # Stilar

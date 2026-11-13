@@ -12,7 +12,7 @@ Skapa projektdirektiv som Word-fil, skalat efter uppdragsstorlek (litet/medelsto
 | Litet | `Mall Uppdragsdirektiv Små uppdrag.docx` | En avstämning, sedan utkast |
 | Medelstort, stort | `Mall Projektdirektiv.docx` | Avstämning efter varje steg |
 
-Båda mallarna ligger i `~/consulting/templates/`, där konsulten själv har lagt Ekans mallar. Pluginet innehåller inga mallar. Saknas mallen: stanna och be konsulten lägga den i mappen. Bygg aldrig ett direktiv utan mallen.
+Båda mallarna ligger i mallmappen: miljövariabeln `EKAN_MALLAR` om den är satt, annars `~/consulting/templates/`. Pluginet innehåller inga mallar, de ligger i Teamsytan för varje uppdrag. Läs mallen, skriv aldrig till mallmappen. Saknas mallen: stanna och be konsulten ladda ner den från uppdragets Teamsyta och lägga den i mallmappen. Leta inte själv i synkade Teams- eller OneDrive-mappar. Bygg aldrig ett direktiv utan mallen.
 
 ## Workflow
 

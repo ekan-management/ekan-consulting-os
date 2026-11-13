@@ -30,6 +30,7 @@ Invoke-Pester -Path tests\ekan-setup.Tests.ps1
 | `jobb.Tests.ps1` | Öppna uppgifter: underrubriker, avslut på samma nivå, `[x]`/`[~]` |
 | `version.Tests.ps1` | VERSION, `plugin.json` och CHANGELOG hänger ihop, och aktuell version har `### För konsulten` |
 | `uppdateringsnotis.Tests.ps1` | Uppdateringsnotisen: klarspråksrader ur CHANGELOG och nya skills |
+| `onboarding.Tests.ps1` | Onboarding-prompten: flaggor som finns i setup, ingen intern adress, versionsrad |
 
 ## End-to-end
 
@@ -47,9 +48,10 @@ Fler tester (nytt-projekt, jobb) är under utveckling — se `ROADMAP.md`.
 
 ## Kör i båda PowerShell-värdarna
 
-Hookarna startas av `hooks.json` med `powershell` (Windows PowerShell 5.1) medan
-skills använder `pwsh` (PowerShell 7). Kör testerna i båda innan du släpper —
-kodningsfel syns bara i 5.1:
+Hookar, kommandon och skills startar alla skripten med `powershell` (Windows
+PowerShell 5.1). Kör ändå testerna i båda värdarna innan du släpper,
+eftersom kodningsfel bara syns i 5.1. Kör med stdin stängd (`< NUL`), annars kan
+ett barnskal vänta på inmatning:
 
 ```powershell
 powershell -NoProfile -Command "Invoke-Pester -Path tests\"

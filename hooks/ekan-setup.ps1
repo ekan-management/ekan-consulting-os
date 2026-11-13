@@ -10,7 +10,15 @@ param(
     # via Bash-verktyget, som inte har konsol-stdin — där kan Read-Host inte
     # besvaras. Claude listar artifakterna för konsulten och sätter denna flagga
     # först efter ett ja. Se commands/setup.md.
-    [switch]$Yes
+    [switch]$Yes,
+    # Mappen där Ekans Word-mallar ligger, till exempel det OneDrive-synkade
+    # mallbiblioteket från SharePoint. Sparas som EKAN_MALLAR i settings.json och
+    # läses sedan av nytt-projekt.ps1, md_to_word.py och projektdirektiv-skillen.
+    # Utelämnad: den sparade mappen gäller, annars ~/consulting/templates.
+    [string]$Mallmapp,
+    # Ändrar ingenting. Kontrollerar att miljön är komplett och skriver en rad
+    # per kontroll. Exit 1 om något saknas. Används sist i onboardingen.
+    [switch]$Kontroll
 )
 
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -203,34 +211,132 @@ function Install-RamverkClaudeMd {
     }
 }
 
+$script:KravdaMallar = @(
+    "Mall Projektdirektiv.docx",
+    "Mall Uppdragsdirektiv Små uppdrag.docx",
+    "Mall anteckningar.docx"
+)
+
+function Get-Mallmapp {
+    # Mallmappen bestäms på ett ställe: EKAN_MALLAR i env-blocket i
+    # ~/.claude/settings.json. Ordning: -Mallmapp, miljövariabeln (satt av Claude
+    # Code ur settings.json), settings.json direkt, sist ~/consulting/templates.
+    if ($Mallmapp) { return $Mallmapp }
+    if ($env:EKAN_MALLAR -and -not $TestMode) { return $env:EKAN_MALLAR }
+    $settingsPath = Join-Path $ClaudeDir "settings.json"
+    if (Test-Path $settingsPath) {
+        try {
+            $s = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($s.env -and $s.env.EKAN_MALLAR) { return [string]$s.env.EKAN_MALLAR }
+        } catch { }
+    }
+    return (Join-Path $ConsultingDir "templates")
+}
+
+function Test-MallOppningsbar {
+    # En .docx är ett zip-arkiv med word/document.xml. Att filen finns räcker
+    # inte: en halvt nedladdad fil eller en OneDrive-platshållare utan nät
+    # öppnas inte av python-docx.
+    param([string]$Path)
+    try {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+        try { return [bool]($zip.Entries | Where-Object { ($_.FullName -replace '\\', '/') -eq 'word/document.xml' }) }
+        finally { $zip.Dispose() }
+    }
+    catch { return $false }
+}
+
+function Get-MallStatus {
+    # En post per mall som skillsen behöver: Namn, Finns, Oppnas.
+    param([string]$Mapp)
+    foreach ($m in $script:KravdaMallar) {
+        $p = Join-Path $Mapp $m
+        $finns = Test-Path $p
+        [PSCustomObject]@{
+            Namn   = $m
+            Finns  = $finns
+            Oppnas = ($finns -and (Test-MallOppningsbar -Path $p))
+        }
+    }
+}
+
 function Test-Templates {
     # Ekans Office-mallar ingår inte i pluginet sedan 3.12.0: repot är publikt och
-    # mallarna är Ekans material. Konsulten lägger dem själv i ~/consulting/templates/.
-    # nytt-projekt.ps1 kopierar därifrån till projektets "80 Mallar kompassen", och
-    # skillsen och md_to_word.py läser samma katalog. Setup skapar katalogen och
-    # listar de mallar som skillsen behöver men som saknas.
-    $dst = Join-Path $ConsultingDir "templates"
-    if (-not (Test-Path $dst)) {
+    # mallarna är Ekans material. De ligger i Teamsytan för varje uppdrag, och
+    # konsulten laddar själv ner dem till ~/consulting/templates. -Mallmapp pekar ut en annan
+    # mapp för den som vill. Bara standardmappen skapas av setup.
+    $dst = Get-Mallmapp
+    $standard = Join-Path $ConsultingDir "templates"
+    if (($dst -eq $standard) -and -not (Test-Path $dst)) {
         New-Item -ItemType Directory -Path $dst -Force | Out-Null
     }
-
-    $kravda = @(
-        "Mall Projektdirektiv.docx",
-        "Mall Uppdragsdirektiv Små uppdrag.docx",
-        "Mall anteckningar.docx"
-    )
-    $saknas = @($kravda | Where-Object { -not (Test-Path (Join-Path $dst $_)) })
-
-    if ($saknas.Count -eq 0) {
-        $antal = @(Get-ChildItem $dst -File).Count
-        Write-Ok "Mallar: ~/consulting/templates ($antal filer)"
+    if (-not (Test-Path $dst)) {
+        Write-Warn "Mallmappen finns inte: $dst"
         return
     }
 
-    Write-Warn "Ekans Office-mallar ingår inte i pluginet. Lägg dem själv i ~/consulting/templates/."
-    Write-Warn "Hämta mallarna från Ekans SharePoint. Följande behövs av /ekan:projektdirektiv och Word-skriptet:"
-    foreach ($m in $saknas) { Write-Warn "  - $m" }
-    Write-Info "Övriga Kompassen-mallar du lägger i mappen kopieras in i varje nytt projekt."
+    $status = @(Get-MallStatus -Mapp $dst)
+    $saknas = @($status | Where-Object { -not $_.Finns })
+    $trasiga = @($status | Where-Object { $_.Finns -and -not $_.Oppnas })
+
+    if ($saknas.Count -eq 0 -and $trasiga.Count -eq 0) {
+        Write-Ok "Mallar: $dst (alla $($status.Count) mallar finns och går att öppna)"
+        return
+    }
+
+    if ($saknas.Count -gt 0) {
+        Write-Warn "Ekans Office-mallar ingår inte i pluginet. De ligger i Teamsytan för varje uppdrag."
+        Write-Warn "Följande saknas i $dst och behövs av /ekan:projektdirektiv och Word-skriptet:"
+        foreach ($m in $saknas) { Write-Warn "  - $($m.Namn)" }
+    }
+    foreach ($m in $trasiga) { Write-Warn "Går inte att öppna: $($m.Namn). Hämta filen igen." }
+}
+
+function Invoke-Kontroll {
+    # Skrivskyddad slutkontroll. Varje rad börjar med OK eller SAKNAS, så att
+    # Claude kan återge resultatet för konsulten som en checklista.
+    function Rad { param([bool]$Ok, [string]$Text)
+        if ($Ok) { Write-Host "OK      $Text" } else { Write-Host "SAKNAS  $Text"; $script:kontrollFel++ }
+    }
+    $script:kontrollFel = 0
+
+    Rad (Test-Path (Join-Path $ConsultingDir "CLAUDE.md"))    "Ekans instruktioner: ~/consulting/CLAUDE.md"
+    Rad (Test-Path (Join-Path $ConsultingDir "MY-CLAUDE.md")) "Dina egna inställningar: ~/consulting/MY-CLAUDE.md"
+    Rad (Test-Path (Join-Path $ConsultingDir "projects"))     "Projektmappen: ~/consulting/projects"
+    Rad (Test-Path (Join-Path $ConsultingDir "ramverk"))      "Referensfiler: ~/consulting/ramverk"
+
+    $settingsOk = $false
+    $settingsPath = Join-Path $ClaudeDir "settings.json"
+    if (Test-Path $settingsPath) {
+        try {
+            $s = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $settingsOk = [bool]($s.extraKnownMarketplaces.'ekan-plugins'.autoUpdate)
+        } catch { }
+    }
+    Rad $settingsOk "Automatisk uppdatering av pluginet"
+
+    $mapp = Get-Mallmapp
+    # En mall som inte finns än är inget fel: konsulten laddar ner den från
+    # uppdraget när den behövs. En mall som finns men inte går att öppna är fel.
+    foreach ($m in @(Get-MallStatus -Mapp $mapp)) {
+        if ($m.Finns) { Rad $m.Oppnas "Mall som går att öppna: $($m.Namn)" }
+        else { Write-Host "SENARE  Mall saknas: $($m.Namn). Behövs först när du skapar ett Word-dokument." }
+    }
+    Write-Host "        Mallmapp: $mapp"
+
+    # Python behövs först när ett Word-dokument ska skapas och räknas inte som fel.
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if ($python) { Write-Host "OK      Python finns (behövs för Word-dokument)" }
+    else         { Write-Host "SENARE  Python saknas. Installeras första gången du ber om ett Word-dokument." }
+
+    if ($script:kontrollFel -gt 0) {
+        Write-Host ""
+        Write-Host "$($script:kontrollFel) saker saknas. Kör onboardingen igen, den fortsätter där den slutade."
+        exit 1
+    }
+    Write-Host ""
+    Write-Host "Allt är på plats."
 }
 
 function Install-Scripts {
@@ -358,7 +464,17 @@ function Merge-Permissions {
     $template = Get-Content $templatePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
     if (Test-Path $settingsPath) {
-        $existing = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        # En settings.json som inte går att tolka får inte fälla resten av setup
+        # med ett engelskt stackspår. Filen lämnas orörd och konsulten får veta det.
+        try {
+            $existing = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        catch {
+            Write-Warn "Kunde inte läsa ~/.claude/settings.json (ogiltig JSON). Filen är orörd."
+            Write-Warn "Behörigheter, mallmapp och automatisk uppdatering sattes inte. Rätta filen och kör setup igen."
+            $script:SettingsFel = $true
+            return
+        }
     } else {
         $existing = [PSCustomObject]@{
             permissions = [PSCustomObject]@{ allow = @(); deny = @(); defaultMode = "auto" }
@@ -393,6 +509,16 @@ function Merge-Permissions {
     }
 
     Enable-MarketplaceAutoUpdate -Settings $existing
+
+    # Utan SSH-nyckel hos GitHub faller pluginuppdateringar inte tillbaka på
+    # HTTPS av sig själva. Variabeln tvingar HTTPS. Konsulterna har inget
+    # GitHub-konto. Källa: code.claude.com/docs/en/plugins/host-marketplace.
+    $existing.env | Add-Member -NotePropertyName CLAUDE_CODE_PLUGIN_PREFER_HTTPS -NotePropertyValue "1" -Force
+
+    # Mallmappen sparas bara när den angetts. En tidigare sparad mapp ligger kvar.
+    if ($Mallmapp) {
+        $existing.env | Add-Member -NotePropertyName EKAN_MALLAR -NotePropertyValue $Mallmapp -Force
+    }
 
     # Säkerställ att ~/.claude finns — på en helt ren maskin saknas katalogen,
     # och då kraschar WriteAllText på settings.json.tmp.
@@ -448,6 +574,11 @@ function Invoke-EkanSetup {
         throw "PluginRoot är inte satt — se felmeddelandet ovan."
     }
 
+    if ($Kontroll) {
+        Invoke-Kontroll
+        return
+    }
+
     # 1. Backup
     $ts = Backup-UserFiles
 
@@ -498,14 +629,14 @@ function Invoke-EkanSetup {
     # 6. Ramverks-CLAUDE.md
     Install-RamverkClaudeMd
 
-    # 7. Kompassen-mallar (läggs dit av konsulten, setup kontrollerar)
-    Test-Templates
-
-    # 8. Hjälpskript
+    # 7. Hjälpskript
     Install-Scripts
 
-    # 9. Permissions-merge
+    # 8. Permissions-merge (sparar även mallmappen)
     Merge-Permissions
+
+    # 9. Mallar (ligger på SharePoint, setup kontrollerar att de finns och öppnas)
+    Test-Templates
 
     # 10. Python-paket
     Install-PythonPackages
@@ -515,7 +646,7 @@ function Invoke-EkanSetup {
     Write-Host "  Klar!" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Nästa steg: cd ~/consulting && claude, sen /ekan:intro" -ForegroundColor White
+    Write-Host "Nästa steg: starta en ny session med mappen consulting och skriv /ekan:intro" -ForegroundColor White
     Write-Host ""
     if ($ts) {
         Write-Host "Backup sparad till:" -ForegroundColor White

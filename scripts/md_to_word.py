@@ -7,12 +7,15 @@ Standardmall: Mall anteckningar.docx
 Tillgängliga mallar: alla .docx i templates/
 """
 
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+# Mallmappen sätts på ett ställe: EKAN_MALLAR i ~/.claude/settings.json, som
+# /ekan:setup -Mallmapp skriver. Saknas den gäller templates/ bredvid scripts/.
+TEMPLATES_DIR = Path(os.environ.get("EKAN_MALLAR") or Path(__file__).parent.parent / "templates")
 DEFAULT_TEMPLATE = "Mall anteckningar.docx"
 
 

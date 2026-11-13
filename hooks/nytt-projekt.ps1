@@ -60,10 +60,15 @@ try {
     }
 
     # Kopiera Ekan-mallar till 80
-    $templatePath = Join-Path $env:USERPROFILE "consulting\templates"
+    # Mallmappen sätts på ett ställe, EKAN_MALLAR i ~/.claude/settings.json
+    # (skrivs av /ekan:setup -Mallmapp). Saknas den gäller ~/consulting/templates.
+    $templatePath = if ($env:EKAN_MALLAR) { $env:EKAN_MALLAR } else { Join-Path $env:USERPROFILE "consulting\templates" }
     $mapp80 = Join-Path $projektPath "80 Mallar kompassen"
     if (Test-Path $templatePath) {
-        Get-ChildItem $templatePath -File | Copy-Item -Destination $mapp80 -ErrorAction Stop
+        # Bara Office-filer: ett synkat SharePoint-bibliotek kan innehålla annat.
+        Get-ChildItem $templatePath -File |
+            Where-Object { $_.Extension -in '.docx', '.dotx', '.xlsx', '.xltx', '.pptx', '.potx' } |
+            Copy-Item -Destination $mapp80 -ErrorAction Stop
     } else {
         Write-Warning "Mallkatalog saknas: $templatePath — inga mallar kopierade."
     }
