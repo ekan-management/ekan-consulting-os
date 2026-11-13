@@ -529,3 +529,96 @@ Describe "ekan-setup - ren maskin (utan ~/.claude)" {
         $settings.hooks | Should -BeNullOrEmpty
     }
 }
+
+Describe "ekan-setup - mallmapp och slutkontroll" {
+    BeforeAll {
+        function New-TestMall {
+            # En minimal .docx: zip-arkiv med word/document.xml.
+            param([string]$Path)
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "ekan-mall-$(Get-Random)"
+            New-Item -ItemType Directory -Path "$tmp/word" -Force | Out-Null
+            Set-Content -Path "$tmp/word/document.xml" -Value "<w:document/>"
+            if (Test-Path $Path) { Remove-Item $Path -Force }
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($tmp, $Path)
+            Remove-Item $tmp -Recurse -Force
+        }
+        $script:Mallnamn = @("Mall Projektdirektiv.docx", "Mall Uppdragsdirektiv Små uppdrag.docx", "Mall anteckningar.docx")
+    }
+    BeforeEach {
+        $script:testRoot = New-TestEnv
+        $script:synkad = Join-Path $script:testRoot "Ekan AB\Kompassen - Mallar"
+        New-Item -ItemType Directory -Path $script:synkad -Force | Out-Null
+        foreach ($m in $script:Mallnamn) { New-TestMall -Path (Join-Path $script:synkad $m) }
+    }
+    AfterEach { Remove-TestEnv $script:testRoot }
+
+    It "sparar -Mallmapp som EKAN_MALLAR i settings.json" {
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+        $s.env.EKAN_MALLAR | Should -Be $script:synkad
+    }
+
+    It "behåller sparad mallmapp när setup körs om utan -Mallmapp" {
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        Invoke-Setup -UserHome $script:testRoot
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+        $s.env.EKAN_MALLAR | Should -Be $script:synkad
+    }
+
+    It "skapar inte ~/consulting/templates när mallmappen pekar på annan plats" {
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        Test-Path "$script:testRoot/consulting/templates" | Should -Be $false
+    }
+
+    It "skriver aldrig till mallmappen" {
+        $fore = @(Get-ChildItem $script:synkad | ForEach-Object { "$($_.Name)|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)" })
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        $efter = @(Get-ChildItem $script:synkad | ForEach-Object { "$($_.Name)|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)" })
+        $efter | Should -Be $fore
+    }
+
+    It "tvingar HTTPS för pluginuppdateringar" {
+        Invoke-Setup -UserHome $script:testRoot
+        $s = Get-Content "$script:testRoot/.claude/settings.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+        $s.env.CLAUDE_CODE_PLUGIN_PREFER_HTTPS | Should -Be "1"
+    }
+
+    It "-Kontroll godkänner en komplett miljö" {
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        $ut = & powershell -NoProfile -ExecutionPolicy Bypass -File $script:SetupScript -UserHome $script:testRoot -PluginRoot $script:PluginRoot -Kontroll 6>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $ut | Should -Match "Allt är på plats"
+        $ut | Should -Not -Match "(?m)^SAKNAS"
+    }
+
+    It "-Kontroll underkänner en mall som inte går att öppna" {
+        Invoke-Setup -UserHome $script:testRoot -ExtraArgs @{ Mallmapp = $script:synkad }
+        Set-Content -Path (Join-Path $script:synkad "Mall anteckningar.docx") -Value "inte en docx"
+        $ut = & powershell -NoProfile -ExecutionPolicy Bypass -File $script:SetupScript -UserHome $script:testRoot -PluginRoot $script:PluginRoot -Kontroll 6>&1 | Out-String
+        $LASTEXITCODE | Should -Be 1
+        $ut | Should -Match "SAKNAS\s+Mall som går att öppna: Mall anteckningar\.docx"
+    }
+
+    It "-Kontroll räknar mallar som inte kopierats än som SENARE, inte som fel" {
+        Invoke-Setup -UserHome $script:testRoot
+        $ut = & powershell -NoProfile -ExecutionPolicy Bypass -File $script:SetupScript -UserHome $script:testRoot -PluginRoot $script:PluginRoot -Kontroll 6>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $ut | Should -Match "SENARE\s+Mall saknas: Mall Projektdirektiv\.docx"
+        $ut | Should -Not -Match "(?m)^SAKNAS"
+    }
+
+    It "-Kontroll ändrar ingenting" {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $script:SetupScript -UserHome $script:testRoot -PluginRoot $script:PluginRoot -Kontroll *> $null
+        Test-Path "$script:testRoot/.claude/settings.json" | Should -Be $false
+        Test-Path "$script:testRoot/consulting/CLAUDE.md" | Should -Be $false
+    }
+
+    It "lämnar en ogiltig settings.json orörd och installerar resten" {
+        $trasig = '{ "permissions": { "allow": ["x"], } // kommentar'
+        Set-Content -Path "$script:testRoot/.claude/settings.json" -Value $trasig -Encoding utf8
+        { Invoke-Setup -UserHome $script:testRoot } | Should -Not -Throw
+        (Get-Content "$script:testRoot/.claude/settings.json" -Raw).Trim() | Should -Be $trasig
+        Test-Path "$script:testRoot/consulting/CLAUDE.md" | Should -Be $true
+    }
+}

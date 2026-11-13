@@ -77,31 +77,5 @@
     ],
     "defaultMode": "auto"
   },
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File __USER_HOME__/.claude/hooks/session-start.ps1",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'Påminnelse efter komprimering: Visa ALLTID projektöversikt som FÖRSTA meddelande. Erbjud alltid UA-granskning efter kundleverabler.'"
-          }
-        ]
-      }
-    ]
-  },
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
-  },
   "language": "swedish"
 }

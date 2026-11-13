@@ -6,6 +6,40 @@ listan i varje ny session under ett dygn efter en uppdatering, så skriv utan
 filnamn och tekniska termer. `tests/version.Tests.ps1` stoppar en release som
 saknar avsnittet.
 
+## 3.14.0 — 2026-11-12
+
+### För konsulten
+
+- Nya kollegor kommer igång genom att klistra in en färdig text i Claude Code. Du får texten av Stefan Edgren.
+- Claude arbetar inte i synkade Teamsytor. Ladda ner filerna du behöver till projektmappen.
+- Setup kontrollerar att Word-mallarna du lagt in går att öppna, och fungerar även om din inställningsfil är trasig.
+
+### Ändrat
+
+- **`onboarding/klistra-in.md`:** onboarding-prompten för desktop-appen. Den
+  klistras in som den är och innehåller inga adresser till Ekans Teamsytor.
+  `tests/onboarding.Tests.ps1` håller ihop promptens flaggor med `ekan-setup.ps1`.
+- **Ramverkets `CLAUDE.md`, avsnitt 3.6:** ny regel om att Teamsytor inte synkas
+  till en mapp där Claude arbetar, och att Claude stannar före läsning där.
+- **Mallmappen sätts på ett ställe:** `EKAN_MALLAR` i `env` i
+  `~/.claude/settings.json`, skriven av `ekan-setup.ps1 -Mallmapp`.
+  `nytt-projekt.ps1`, `md_to_word.py` och projektdirektiv-skillen läser den och
+  faller tillbaka på `~/consulting/templates`, som är standard.
+- **`ekan-setup.ps1 -Kontroll`:** skrivskyddad slutkontroll med en rad per
+  kontroll. Mallarna kontrolleras genom att filen öppnas, inte bara att den finns.
+  En mall som inte lagts in än visas som SENARE och räknas inte som fel.
+- **Setup tål en ogiltig `settings.json`:** filen lämnas orörd, resten installeras
+  och konsulten får besked på svenska.
+- **`CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`** skrivs i `env`, så att uppdateringar
+  fungerar utan SSH-nyckel hos GitHub.
+- **`nytt-projekt.ps1`** kopierar bara Office-filer ur mallmappen.
+- **`session-start.ps1`** skapar `~/.claude` om mappen saknas, i stället för att
+  skriva tre fel på stderr.
+- **`config/permissions-template.json`:** de oanvända blocken `hooks` och
+  `enabledPlugins` är borttagna. Setup läste dem aldrig.
+- **README:** PowerShell 7 är inte längre en förutsättning. Hookarna har alltid
+  körts i inbyggda Windows PowerShell 5.1.
+
 ## 3.13.0 — 2026-11-12
 
 ### För konsulten
